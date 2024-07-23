@@ -26,12 +26,16 @@ class HumanML3DDataModule(BASEDataModule):
         self.hparams.data_root = data_root
         self.hparams.text_dir = pjoin(data_root, "texts")
         self.hparams.motion_dir = pjoin(data_root, 'new_joint_vecs')
-        
+
         # Mean and std of the dataset
+        # Decomp_SP001_SM001_H51
+        # VQVAEV3_CB1024_CMT_H1024_NRES3
+        
+        # vq vae load
         dis_data_root = pjoin(cfg.DATASET.HUMANML3D.MEAN_STD_PATH, 't2m', "VQVAEV3_CB1024_CMT_H1024_NRES3", "meta")
         self.hparams.mean = np.load(pjoin(dis_data_root, "mean.npy"))
         self.hparams.std = np.load(pjoin(dis_data_root, "std.npy"))
-        
+        # /data/motionGPT/deps/t2m/t2m/t2m/VQVAEV3_CB1024_CMT_H1024_NRES3
         # Mean and std for fair evaluation
         dis_data_root_eval = pjoin(cfg.DATASET.HUMANML3D.MEAN_STD_PATH, 't2m', "Comp_v6_KLD01", "meta")
         self.hparams.mean_eval = np.load(pjoin(dis_data_root_eval, "mean.npy"))
@@ -86,7 +90,7 @@ class HumanML3DDataModule(BASEDataModule):
         return recover_from_ric(features, self.njoints)
 
     def joints2feats(self, features):
-        example_data = np.load(os.path.join(self.hparams.data_root, 'joints', '000021.npy'))
+        example_data = np.load(os.path.join(self.hparams.data_root, 'new_joints', '000021.npy'))
         example_data = example_data.reshape(len(example_data), -1, 3)
         example_data = torch.from_numpy(example_data)
         features = process_file(features, self.njoints, example_data, 't2m')[0]

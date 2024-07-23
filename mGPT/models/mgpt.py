@@ -68,6 +68,7 @@ class MotionGPT(BaseModel):
 
         # Forward
         # texts = ['Generate motion: ' + text for text in texts]
+        # motion index sequence 
         outputs, output_texts = self.lm.generate_direct(texts, do_sample=True)
 
         # Motion Decode
@@ -124,6 +125,7 @@ class MotionGPT(BaseModel):
         tokens_ref = batch["motion"]
         texts = batch["text"]
         lengths = batch["length"]
+        # task는 instruction과 동일
         tasks = batch["tasks"]
         all_captions = batch['all_captions']
         if self.hparams.condition == 'caption':

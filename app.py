@@ -246,7 +246,9 @@ def bot(history, motion_uploaded, data_stored, method):
         "text": [prompt],
     }
 
+    # Inference(test)
     outputs = model(batch, task="t2m")
+
     out_feats = outputs["feats"][0]
     out_lengths = outputs["length"][0]
     out_joints = outputs["joints"][:out_lengths].detach().cpu().numpy()

@@ -64,6 +64,7 @@ class MLM(nn.Module):
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
         # Add motion tokens
+        # <eom>(End of motion), <som>(start of motion) 까지 더해서 + 3
         self.tokenizer.add_tokens(
             [f'<motion_id_{i}>' for i in range(self.m_codebook_size + 3)])
 
@@ -146,6 +147,7 @@ class MLM(nn.Module):
                 self.random_spans_noise_mask(expandend_input_length)
                 for i in range(batch_size)
             ])
+            # MASS 방식으로 source, target 문장 masking
             target_mask = ~mask_indices
             input_ids_sentinel = self.create_sentinel_ids(
                 mask_indices.astype(np.int8))
@@ -171,6 +173,10 @@ class MLM(nn.Module):
                 motion_tokens.device)
 
         labels_input_ids[labels_input_ids == 0] = -100
+        # source_input_ids: source 문장에 대한 token index sequence
+        # 이때 source_input_ids에는 masking이 적용됨
+        # labels_input_ids: target 문장에 대한 token index sequence
+        # 이때 labels_input_ids masking이 적용됨
         outputs = self.language_model(
             input_ids=source_input_ids,
             attention_mask=source_attention_mask

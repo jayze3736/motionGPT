@@ -26,6 +26,7 @@ class NewTokenEmb(nn.Module):
         with torch.no_grad():
             self.text_embeddings.weight.data[:old_embeddings.
                                              num_embeddings] = old_embeddings.weight.data
+            # motion embedding이랑 더할때 안겹치도록 self.old_num_tokens에서부터 끝까지는 weight를 0로 설정
             self.text_embeddings.weight.data[
                 self.old_num_tokens:] = torch.zeros(
                     self.new_num_tokens,
@@ -41,6 +42,7 @@ class NewTokenEmb(nn.Module):
             device=old_embeddings.weight.device,
             dtype=old_embeddings.weight.dtype)
         with torch.no_grad():
+            # text embedding이랑 더할때 안겹치도록 처음부터 self.old_num_tokens까지는 weight를 0로 설정
             self.motion_embeddings.weight.data[:self.
                                                old_num_tokens] = torch.zeros(
                                                    new_num_tokens,
@@ -68,6 +70,6 @@ class NewTokenEmb(nn.Module):
             self.old_num_tokens:] = self.word2motionProj(
                 self.text_embeddings.weight.data[:self.old_num_tokens].permute(
                     1, 0)).permute(1, 0)
-
+        
         return self.text_embeddings(input) + self.motion_embeddings(input)
 

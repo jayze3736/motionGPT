@@ -169,6 +169,7 @@ class Quantizer(nn.Module):
         assert z.shape[-1] == self.e_dim
 
         # B x V
+        # z^2 - 2 z * z_hat + z_hat^2
         d = torch.sum(z ** 2, dim=1, keepdim=True) + \
             torch.sum(self.embedding.weight ** 2, dim=1) - 2 * \
             torch.matmul(z, self.embedding.weight.t())

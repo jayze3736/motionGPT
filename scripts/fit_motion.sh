@@ -1,1 +1,0 @@
-python -m fit --dir $1 --save_folder $2 --cuda True
