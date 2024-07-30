@@ -19,10 +19,34 @@ from transformers import WhisperProcessor, WhisperForConditionalGeneration
 import librosa
 from huggingface_hub import snapshot_download
 import json
+import argparse
+
+# def main_parse_args():
+#     desc = "rendering input params"
+#     parser = argparse.ArgumentParser(description=desc)
+#     cfg = parse_args(phase="render")  # parse config file
+#     print("cfg")
+#     print(cfg)
+#     # GPU 번호
+#     parser.add_argument(
+#         "--save_dir", type=str, required=False, default='/data/motionGPT/workspace/vae_exp'
+#     )
+#     parser.add_argument(
+#         "--json_path", type=str, required=True
+#     )
+#     parser.add_argument(
+#         "--gen_mode", type=str, required=False, default='default', choices=['default', 'reverse' ,'random']
+#     )
+#     args = parser.parse_args()
+#     print("args")
+#     print(args)
+#     exit()
+#     return cfg
 
 # Load model
 cfg = parse_args(phase="render")  # parse config file
 cfg.FOLDER = 'test_visualization'
+
 output_dir = Path(cfg.FOLDER)
 output_dir.mkdir(parents=True, exist_ok=True)
 pl.seed_everything(cfg.SEED_VALUE)
@@ -74,6 +98,8 @@ model.lm.device = device
 def load_motion(motion_uploaded):
     file = motion_uploaded['file']
 
+    
+    
     feats = torch.tensor(np.load(file), device=model.device)
 
     if len(feats.shape) == 2:
@@ -92,7 +118,9 @@ def load_motion(motion_uploaded):
         motion_token, [motion_token.shape[1]])[0]
     motion_token_length = motion_token.shape[1]
 
+    
     # Motion rendered
+    
     joints = model.datamodule.feats2joints(feats.cpu()).cpu().numpy()
     # _, _, output_npy_path, joints_fname = render_motion(
     #     joints,
@@ -122,7 +150,9 @@ def edit_motion(motion_token_string, mode='default'):
     if mode=='default':
         pass
     elif mode=='random':
+
         import random
+        # SOM, EOM token 모두 제거
         motion_token_string = motion_token_string.replace("<motion_id_512>", "")
         motion_token_string = motion_token_string.replace("<motion_id_513>", "")
         motion_tokens = motion_token_string.split('><')
@@ -139,16 +169,34 @@ def edit_motion(motion_token_string, mode='default'):
         motion_token_string = prefix + motion_token_string + suffix
         print(f"Shuffled motion token string: {motion_token_string}")
     elif mode=='reverse':
-        pass
+
+        # SOM, EOM token 모두 제거
+        motion_token_string = motion_token_string.replace("<motion_id_512>", "")
+        motion_token_string = motion_token_string.replace("<motion_id_513>", "")
+        motion_tokens = motion_token_string.split('><')
+        
+        motion_tokens = [f'<{token.replace(">", "").replace("<","")}>' if ('<' in token or '>' in token) else f'<{token}>' for token in motion_tokens]
+
+        # 랜덤으로 시퀀스 섞기
+        motion_tokens = motion_tokens.reverse()
+
+        # 섞인 시퀀스를 다시 문자열로 결합
+        motion_token_string = ''.join(motion_tokens)
+        prefix = "<motion_id_512>"
+        suffix = "<motion_id_513>"
+        motion_token_string = prefix + motion_token_string + suffix
+        print(f"reversed motion token string: {motion_token_string}")
 
     # model.vae.decode
+   
     motion_tokens, _ = model.lm.motion_string_to_token([motion_token_string])
     m_tokens = motion_tokens[0]
     feats = model.vae.decode(m_tokens)
     gen_feats = feats.to('cpu').numpy()
     #print(f"edit motion gen_feats:{feats}")
     gen_joints = model.feats2joints(feats).to('cpu').numpy()
-    #print(f"edit motion gen_joints:{gen_joints}")
+
+        #print(f"edit motion gen_joints:{gen_joints}")
 
     return gen_feats, gen_joints
 
@@ -188,7 +236,21 @@ def render_motion(data, feats, fname, method='fast'):
     
     return output_mp4_path, video_fname, output_npy_path, feats_fname
 
-
+def render_motion_with_only_joints(data, fname, method='fast'):
+    # fname = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime(
+    #    time.time())) + str(np.random.randint(10000, 99999))
+    video_fname = fname + '.mp4'
+    data_fname = f"{fname}_joints" + '.npy'
+    output_joints_path = os.path.join(output_dir, data_fname)
+    output_mp4_path = os.path.join(output_dir, video_fname)
+    
+    np.save(output_joints_path, data)
+    
+    render_cmd = ["python", "-m", "render", "--joints_path", output_joints_path, "--method", method, "--output_mp4_path", output_mp4_path, "--smpl_model_path", cfg.RENDER.SMPL_MODEL_PATH]
+    os.system(" ".join(render_cmd))
+    # subprocess.run(cmd3)
+    
+    return output_mp4_path, video_fname
 
 
 
@@ -200,10 +262,10 @@ def render_motion(data, feats, fname, method='fast'):
 if __name__ == "__main__":
 
     print("Start!")
-    save_dir = '/data/motionGPT/workspace/vae_exp'
-    input_path = '/data/motionGPT/workspace/vae_exp/encoder_input/n1.json'
     
-    mode = 'random' # 'default', 'reverse', 'random'
+    save_dir = '/data/motionGPT/workspace/vae_exp'
+    input_path = '/data/motionGPT/workspace/vae_exp/decoder_input/0_joints.json' # /data/motionGPT/workspace/vae_exp/encoder_input/n1.json'
+    mode = 'default' # 'default', 'reverse', 'random'
 
     with open(input_path, 'r') as json_file:
         input = json.load(json_file)
@@ -232,7 +294,6 @@ if __name__ == "__main__":
         print(f"motion_token_length:{motion_uploaded['motion_token_length']}")
         
         # json 파일 저장
-
         input['user_input_token_seq'] = motion_token_string
         input['decode'] = True
         input['encode'] = False
@@ -241,9 +302,16 @@ if __name__ == "__main__":
             json.dump(input, json_file, indent=4)
         print("### Decoder input saved ###")
     elif decode:
-        motion_token_string = m_tokens
-        fname = file_name + f'_mode_{mode}'
-        gen_feats, gen_joints = edit_motion(motion_token_string, mode) # 원하는 의도에 따라서 토큰 시퀀스 변경 및 vae decode
-        render_motion(data=gen_joints, fname = fname, feats=gen_feats) # data를 rendering에 연결
-        print("### Rendered motion saved ###")
+        file_type = file.split('/')[-1].replace('.npy', '')
+        if 'joints' in file_type:
+            gen_joints = torch.tensor(np.load(file), device=model.device)
+            gen_joints = gen_joints.cpu().numpy()
+            render_motion_with_only_joints(data=gen_joints,fname=file_name,method='slow')
+            print("### Rendered motion saved ###")
+        else:
+            motion_token_string = m_tokens
+            fname = file_name + f'_mode_{mode}'
+            gen_feats, gen_joints = edit_motion(motion_token_string, mode) # 원하는 의도에 따라서 토큰 시퀀스 변경 및 vae decode
+            render_motion(data=gen_joints, fname = fname, feats=gen_feats, method='slow') # data를 rendering에 연결
+            print("### Rendered motion saved ###")
     print("Done!")

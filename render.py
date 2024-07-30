@@ -46,7 +46,7 @@ if __name__ == '__main__':
             np.stack([np.stack([np.eye(3)] * pose.shape[0], 0)] * 2, 1)
         ], 1)
         shape = [768, 768]
-        render = SMPLRender(smpl_model_path)
+        render = SMPLRender(smpl_model_path) # render model 선택
 
         r = RRR.from_rotvec(np.array([np.pi, 0.0, 0.0]))
         pose[:, 0] = np.matmul(r.as_matrix().reshape(1, 3, 3), pose[:, 0])
@@ -73,6 +73,6 @@ if __name__ == '__main__':
             data = data[None]
         if isinstance(data, torch.Tensor):
             data = data.cpu().numpy()
-        pose_vis = plot_3d.draw_to_batch(data, [''], [output_gif_path])
+        pose_vis = plot_3d.draw_to_batch(data, [''], [output_gif_path]) # render model 선택
         out_video = mp.VideoFileClip(output_gif_path)
         out_video.write_videofile(output_mp4_path)

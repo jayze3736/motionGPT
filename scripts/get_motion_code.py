@@ -8,6 +8,12 @@ from mGPT.config import parse_args
 from mGPT.data.build_data import build_data
 from mGPT.models.build_model import build_model
 from mGPT.utils.load_checkpoint import load_pretrained_vae
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2" 
+
+# motion frame 에대한 encode feature들을 미리 저장해두는 코드
+
 
 def main():
     # parse options

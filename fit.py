@@ -1,5 +1,4 @@
 # borrow from optimization https://github.com/wangsen1312/joints2smpl
-
 from __future__ import division, print_function
 
 import argparse
@@ -10,6 +9,7 @@ import sys
 from os import listdir, walk
 from os.path import isfile, join
 from pathlib import Path
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2" 
 
 import h5py
 import joblib
